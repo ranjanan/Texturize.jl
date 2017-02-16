@@ -3,6 +3,7 @@ using Images
 function preprocess_img(img, shape)
     resized_img = Images.imresize(img, (shape[2], shape[1]))
     sample = separate(resized_img).data * 256
+    sample = sample[:,:,1:3]
     sample[:,:,1] -= 123.68
     sample[:,:,2] -= 116.779
     sample[:,:,3] -= 103.939
@@ -26,20 +27,21 @@ function texturize(img::String, model::String, task::String; output_shape = (500
 	s1 = div(s1, 32) * 32
 	s2 = div(s2, 32) * 32
 	s = generator_symbol(m, task)
-	args = mx.load("models/$(model)_args.nd", mx.NDArray)
-	auxs = mx.load("models/$(model)_auxs.nd", mx.NDArray)
+    path = joinpath(Pkg.dir("Texturize"), "models")
+	args = mx.load("$path/$(model)_args.nd", mx.NDArray)
+	auxs = mx.load("$path/$(model)_auxs.nd", mx.NDArray)
 	if task == "texture"
 		for i = 1:m
 			args[Symbol("z_$i")] = mx.rand(-128, 128, (div(s1, 16) * (2^i), div(s2, 16) * (2^i), 3, 1))
 		end
 	else
 		for i = 1:m
-			args[Symbol("znoise_$(i-1)")] = mx.rand(-10, 10, (div(s1,16)*(2^(i-1)), div(s2, 16) * (2^(i-1)), 3, 1), mx.gpu(0))
+			args[Symbol("znoise_$(i-1)")] = mx.rand(-10, 10, (div(s1,16)*(2^(i-1)), div(s2, 16) * (2^(i-1)), 3, 1), mx.cpu(0))
 			imager = map(Float32, preprocess_img(image, ( div(s1, 16) * (2^(i-1)), div(s2, 16) * (2^(i-1)), 3, 1)))
 			args[Symbol("zim_$(i-1)")] = mx.NDArray(imager)
 		end
 	end
-	m = mx.bind(s, mx.gpu(0), args, aux_states =  auxs)
+	m = mx.bind(s, mx.cpu(0), args, aux_states =  auxs)
 	mx.forward(m, is_train=true)
 	output = postprocess_image(Array{Float32}(m.outputs[1]))
 	colorim(output)
