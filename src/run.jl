@@ -19,7 +19,7 @@ function postprocess_image(img)
     return map(UInt8,(img |> floor))
 end
 
-function texturize(img::String, model::String, task::String; output_shape = (500,500), m = 5)
+function texturize(img::String, model::String, task::String; output_shape = (500,500), m = 5, out_file = "proc.jpg")
 	image = load(img)
 	input_size = size(image)
 	output_shape = reverse(input_size)
@@ -44,5 +44,6 @@ function texturize(img::String, model::String, task::String; output_shape = (500
 	m = mx.bind(s, mx.cpu(0), args, aux_states =  auxs)
 	mx.forward(m, is_train=true)
 	output = postprocess_image(Array{Float32}(m.outputs[1]))
-	colorim(output)
+	#colorim(output)
+    Images.save(out_file, output) 
 end
