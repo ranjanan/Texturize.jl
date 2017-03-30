@@ -32,7 +32,7 @@ function texturize(img::String, model::String, task::String; output_shape = (500
 	auxs = mx.load("$path/$(model)_auxs.nd", mx.NDArray)
 	if task == "texture"
 		for i = 1:m
-			args[Symbol("z_$i")] = mx.rand(-128, 128, (div(s1, 16) * (2^i), div(s2, 16) * (2^i), 3, 1))
+			args[Symbol("z_$i")] = mx.rand(-128, 128, (div(s1, 16) * (2^i), div(s2, 16) * (2^i), 3, 1), mx.cpu(0))
 		end
 	else
 		for i = 1:m
@@ -44,6 +44,6 @@ function texturize(img::String, model::String, task::String; output_shape = (500
 	m = mx.bind(s, mx.cpu(0), args, aux_states =  auxs)
 	mx.forward(m, is_train=true)
 	output = postprocess_image(Array{Float32}(m.outputs[1]))
-	#colorim(output)
-    Images.save(out_file, output) 
+	colorim(output)
+    #Images.save(out_file, output) 
 end
