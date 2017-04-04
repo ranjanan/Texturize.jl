@@ -88,5 +88,5 @@ function perceptual(img, model_prefix, output_shape = (500, 500))
 	m = mx.bind(s, mx.cpu(0), args, aux_states =  auxs)
 	mx.forward(m, is_train=true)
 	output = postprocess_image(Array{Float32}(m.outputs[1]))
-	colorim(output)
+	save("$(img)_output.jpg", colorim(output)')
 end
