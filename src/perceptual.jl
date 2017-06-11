@@ -72,21 +72,30 @@ function descriptor_symbol(style_layers=["relu1_1", "relu2_1", "relu3_1", "relu4
     return mx.Group([style_out, eval(Symbol(content_layer))])
 end
 
-function perceptual(img, model_prefix, output_shape = (500, 500))
+function perceptual(img, model_prefix, gpu = -1, save = true)
 	image = load(img)
     output_shape = size(image)
-    @show output_shape
 	s2, s1 = output_shape
 	s1 = div(s1, 32) * 32
 	s2 = div(s2, 32) * 32
     s = generator_symbol()
+
     path = joinpath(Pkg.dir("Texturize"), "models")
     args = mx.load("$path/$(model_prefix)_args.nd", mx.NDArray)
     auxs = mx.load("$path/$(model_prefix)_auxs.nd", mx.NDArray)
+
     imager = preprocess_img(image, (s1, s2))
+
     args[:data] = mx.NDArray(imager)
-	m = mx.bind(s, mx.cpu(0), args, aux_states =  auxs)
+
+	ctx = gpu == -1 ? mx.cpu() : mx.gpu()
+	m = mx.bind(s, mx.cpu(), args, aux_states =  auxs)
 	mx.forward(m, is_train=true)
-	output = postprocess_image(Array{Float32}(m.outputs[1]))
-	save("$(img)_output.jpg", colorim(output)')
+
+	output = postprocess_img(Array{Float32}(m.outputs[1]))
+	final_output = colorview(RGB{N0f8}, output)
+
+	save("$(img)_output.jpg", final_output)
+
+	final_output
 end
