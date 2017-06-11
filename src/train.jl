@@ -69,7 +69,7 @@ end
 
 include("model_vgg19.jl")
 
-function train(img::Image, style_image; stop_eps = 0.005, 
+function train(img, style_image; stop_eps = 0.005, 
 				content_weight = 10.0, style_weight = 1.0, max_num_epochs = 100, 
 				max_long_edge = 600, LR = 0.1, gpu = 0, save_epochs = 50)
 

@@ -7,6 +7,7 @@ module Texturize
 	include("run.jl")
 	include("train.jl")
     include("perceptual.jl")
+	import .Perceptual: perceptual
 
 	export texturize, perceptual
 end

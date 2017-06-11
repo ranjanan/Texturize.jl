@@ -1,3 +1,8 @@
+module Perceptual
+
+using Images
+using MXNet
+
 const ws = 8192
 function block(data, num_filter; name = "thing")
     data2 = conv(data, num_filter, 1, name=name)
@@ -72,12 +77,33 @@ function descriptor_symbol(style_layers=["relu1_1", "relu2_1", "relu3_1", "relu4
     return mx.Group([style_out, eval(Symbol(content_layer))])
 end
 
-function perceptual(img, model_prefix, gpu = -1, save = true)
+function preprocess_img(img, shape)
+    resized_img = Images.imresize(img, (shape[2], shape[1]))
+    sample = channelview(resized_img) * 256
+    sample[1,:,:] -= 123.68
+    sample[2,:,:] -= 116.779
+    sample[3,:,:] -= 103.939
+    sample = permutedims(sample, [2,3,1])
+    return reshape(sample, (size(sample)[1], size(sample)[2], 3, 1))
+end
+
+function postprocess_img(img)
+    img = reshape(img, (size(img)[1], size(img)[2], 3))
+    img[:,:,1] += 123.68
+    img[:,:,2] += 116.779
+    img[:,:,3] += 103.939
+	img = permutedims(img, [3,1,2])
+    img = clamp(img, 0, 255)
+    return map(UInt8,(img |> floor))
+end
+
+function perceptual(img, model_prefix; gpu = -1, write = true, out = "")
 	image = load(img)
     output_shape = size(image)
 	s2, s1 = output_shape
 	s1 = div(s1, 32) * 32
 	s2 = div(s2, 32) * 32
+
     s = generator_symbol()
 
     path = joinpath(Pkg.dir("Texturize"), "models")
@@ -95,7 +121,15 @@ function perceptual(img, model_prefix, gpu = -1, save = true)
 	output = postprocess_img(Array{Float32}(m.outputs[1]))
 	final_output = colorview(RGB{N0f8}, output)
 
-	save("$(img)_output.jpg", final_output)
+	if out == ""
+		s = split(img, '.')
+		out = s[1] * "_output." * s[2]
+	end
+		
+
+	write && save(out, final_output)
 
 	final_output
+end
+
 end
